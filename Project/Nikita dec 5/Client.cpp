@@ -11,7 +11,12 @@ int main(int argc, char **argv) {
 //    int port(2010);
     int port(2000);
 
-    std::cout << std::endl << "[ --- CLIENT --- ]" << std::endl;
+    std::cout << std::endl <<
+              std::endl <<
+              std::endl <<
+              std::endl <<
+              std::endl <<
+              std::endl <<"[ --- CLIENT --- ]" << std::endl;
 
     // declare attributes
     std::string serverResponse;
@@ -29,15 +34,10 @@ int main(int argc, char **argv) {
     newSocket.Read(byteResponse);
     serverResponse = byteResponse.ToString();// convert ByteArray to String
 
-
-    // display response to terminal
-    //std::cout << "The response from Server is: " << std::endl;
-    //std::cout << serverResponse << std::endl;
-
     // Loops until "done" command is input by user
-    while (userInput != "done") {
+    while (userInput != "close") {
 
-        std::cout << "Enter something: ";
+        std::cout << "Enter 'close' to exit, 'enter' to hear recent response from server: ";
         std::getline(std::cin, userInput);
         std::cout << std::endl;
 
@@ -45,13 +45,13 @@ int main(int argc, char **argv) {
         // Convert user input into ByteArray and send thru socket
         newSocket.Write(userInput);
 
-        if (newSocket.Read(byteResponse) <= 0) {
-            std::cout << "Response is < 0...ERROR..." << std::endl;
-        }
+//        if (newSocket.Read(byteResponse) <= 0) {
+//            std::cout << "Response is < 0...ERROR..." << std::endl;
+//        }
 
         // Display current response from Server
         serverResponse = byteResponse.ToString();
-        std::cout << "The response from Server is: " << std::endl;
+        std::cout << std::endl << "The response from Server is: " << std::endl;
         std::cout << serverResponse << std::endl;
     }
 

@@ -238,7 +238,8 @@ bool isAnswerCorrect(std::string answer, int questionIndex){
 //----------------------------------------------------------
 // CLASS FOR THE MONITORING-THREAD
 //class threadMonitor : public Thread {
-
+//// TODO: this is supposed to create a SocketServer which handles the socket connections
+////        -- like a server for sockets inside the Main Server...Xzibit.jpg
 //    // has SocketServer object
 //private: SocketServer *theSocketServer;
 //private: bool *finish;
@@ -272,18 +273,23 @@ bool isAnswerCorrect(std::string answer, int questionIndex){
 //    }
 //};
 
-void threadMonitor(SocketServer &ss, bool &tf) {
+////--------------------------------------------
+//// Waits for 'CLOSE' command to shut down the server
+void threadMonitor(SocketServer &ss, bool &c) {
 	bool run = true;
 	std::string command;
 
-	std::cout << std::endl << "Enter command [close] to terminate server: " << std::endl;
+    std::cout << std::endl << "--------------------------" << std::endl;
+    std::cout << std::endl << "-- Running threadMonitor--" << std::endl;
+	std::cout << std::endl << "Enter command [close] at any time to terminate server: " << std::endl;
+    std::cout << std::endl << "--------------------------" << std::endl;
 
 	// If "close" command is received from command line
 	// proceed to terminate the SocketServer
 	while (run) {
 		std::getline(std::cin, command);
 		if (command == "close") {
-			tf = false;
+			c = false;
 			run = false;
 		}
 	}
@@ -291,13 +297,21 @@ void threadMonitor(SocketServer &ss, bool &tf) {
 	ss.Shutdown();
 }
 
+////--------------------------------------------------
+////  most GAME STUFF goes in here... Not being reached by Program at the moment
+////--------------------------------------------------
 void gameThread(std::vector<Socket> &sockets, bool &tf) {
-	std::cout << "hello there" << std::endl;
+	std::cout << " -- Inside gameThread -- " << std::endl;
 }
 
-//----------------------------------------------------------
-//  THREAD CLASS for arbitrary # of Clients
+
+
+////----------------------------------------------------------
+////  THREAD CLASS for arbitrary # of Clients
+////  - TODO: This isn't being used right now...it's been replaced by Nikita's std::thread below
+////            -- this functionality needs to be implemented back somehow
 class newThread : public Thread {
+//class newThread : public std::thread {  // My attempt at a fix..doesn't work
 
 private:
     std::vector<Socket*> newSocket;// declare new Socket
@@ -311,15 +325,13 @@ public:
         for (Socket i : sockets) {
             sockets.push_back(i);// load the new socket into the new socket vector
         }
-
         finish = tf;// assign true/false to exit BOOL
-
     }
 
     // THREAD CLASS DESTROYER
 public:
     ~newThread() {
-
+        //// TODO: gotta put something in here to destroy thread properly
     }
 
     // FUNCTION TO CLOSE SOCKETS
@@ -355,11 +367,10 @@ public:
 
 };
 
-//----------------------------------------------------------
-//      MAIN DRIVER
+////----------------------------------------------------------
+////      MAIN DRIVER
 int main(int argc, char **argv) {
 
-    std::cout << std::endl << "[========== STARTED SERVER ==========]" << std::endl;
     try {
         int port = 2000;
         bool run = true;
@@ -369,37 +380,48 @@ int main(int argc, char **argv) {
         std::vector<Socket> sockets;
 
         SocketServer newSocketServer(port);// make new SocketServer at port ____
-        ByteArray userInput;// declare userInput for raw data from Socket
+        ByteArray userInput;// declare userInput of type ByteArray for raw data from Socket
         std::cout << "...finished setup..." << std::endl;
+        std::cout << std::endl <<
+                  std::endl <<
+                  std::endl <<
+                  std::endl <<
+                  std::endl << "[========== SERVER is now ONLINE ==========]" << std::endl << std::endl;
 
         //  Thread monitoring check
 //		threadMonitor monitor(newSocketServer, &run);
-        std::cout << "Running Nikita's monitor thread..." << std::endl;
+        std::cout << "[[ ★☆。. :*:･”ﾟ★ Running Nikita's monitor thread ★｡.:*:･”☆★ ]]" << std::endl;
 		std::thread monitorThread(threadMonitor, std::ref(newSocketServer), std::ref(run));
 
 		while (run) {
             // create new socket vector
             std::vector<Socket> newSocketVector;
-            std::cout << "-- Inside while loop in Main --" << std::endl;
+            std::cout << std::endl << "-- Inside while loop in Main --" << std::endl;
 
             try {
+                for (int i = 0; i<4; i++) {
+                    // "Accept" new Socket...returns new Socket object
+                    std::cout << std::endl << ">> Waiting to accept new socket..." << std::endl;
+                    Socket newSocket = newSocketServer.Accept();
 
-                // "Accept" new Socket...returns new Socket object
-                std::cout << "Trying to accept new socket..." << std::endl;
-				Socket newSocket = newSocketServer.Accept();
-                std::cout << "About to push accepted Socket into Socket Vector..." << std::endl;
-                newSocketVector.push_back(newSocket);// put newly Accepted Socket into Socket vector
-                std::cout << "About to push accepted 'sockets' vector into Socket Vector..." << std::endl;
-                sockets.push_back(newSocket);// also copy it into "sockets" vector
+                    std::cout << " - Accepted a Socket connection..." << std::endl;
+                    std::cout << " - About to push accepted Socket into Socket Vector..." << std::endl;
+                    newSocketVector.push_back(newSocket);// put newly Accepted Socket into Socket vector
 
-                //TODO: 5 queued sockets FOR loop...give feedback about which connection/queue number they are
-                //newSocket.at(i)->Write(num);
+                    std::cout << " - About to push accepted Socket into 'sockets' vector..." << std::endl;
+                    sockets.push_back(newSocket);// also copy it into "sockets" vector
 
+                    // writes message to newest Socket CONNECTION saying which # they are
+                    std::string message = " -- You are CONNECTION # " + std::to_string(i);
+                    newSocketVector.at(i).Write(message);
+                }
                 // create new thread for this socket connection
 //				newThread newestThread = new newThread(sockets, run);
+
+///////TODO vvv  This line needs to be reworked...it's not doing anything right now
 				std::thread newestThread(gameThread, std::ref(newSocketVector), std::ref(run));
 				threads.push_back(std::move(newestThread));// add it to the "threads" vector
-
+                std::cout << " - pushed newestThread into 'threads' vector" << std::endl;
             }
             catch (int e) {
                 // socket/thread connection didn't work...
@@ -407,13 +429,14 @@ int main(int argc, char **argv) {
                 std::cout << errmsg << std::endl;
                 // send out error msg
                 for (Socket i : newSocketVector) {
-
+                    std::cout << "  -About to write error messages to each Socket..." << std::endl;
                     i.Write(errmsg);
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(800));// slow down
 
                     // if things don't look good from the other end, close
                     if (i.Read(userInput) != 0) {
+                        std::cout << "< Socket connection is missing...close from this end" << std::endl;
                         i.Close();
                     }
                 }
@@ -421,6 +444,9 @@ int main(int argc, char **argv) {
 
 
         }// end while loop
+
+//// TODO:  Gotta fix logic here...right now, program isn't reaching this point
+////        - This is what shuts down the server without CORE DUMPS
 
         // Terminate all threads
         //std::this_thread::sleep_for(std::chrono::milliseconds(800));
